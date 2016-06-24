@@ -10,6 +10,7 @@ from sklearn.neighbors import NearestNeighbors
 os.chdir('/Users/kevinoconnor/Documents/Kaggle Competitions/FacebookCheckInCompetition/')
 
 # Loading training and test data
+## Number of rows which are used from each data set are restricted to make computation time reasonable
 train_data = pd.read_csv('train.csv', header=0, nrows=10000)
 test_data = pd.read_csv('test.csv', header=0, nrows=1000)
 
@@ -20,77 +21,21 @@ x_places = train_data['x'].groupby(train_data['place_id'])
 y_places = train_data['y'].groupby(train_data['place_id'])
 x_means = x_places.mean()
 y_means = y_places.mean()
-'''
-# Writing place means for later use.
-places_x = pd.DataFrame(data=np.array([places, x_means]).T, columns=['place_id', 'x_mean']).sort_values(by='x_mean')
-places_y = pd.DataFrame(data=np.array([places, y_means]).T, columns=['place_id', 'y_mean']).sort_values(by='y_mean')
-#places_locations = pd.DataFrame(data=np.array([places, x_means, y_means]).T, columns=['place_id', 'x_mean', 'y_mean'])
-#places_locations.to_csv('place_means.csv')
-places_x.to_csv('places_x.csv')
-places_y.to_csv('places_y.csv')
-'''
 
-# Reading in place locations.
+# Reading in place locations
 places_x = pd.read_csv('places_x.csv', header=0)
 places_y = pd.read_csv('places_y.csv', header=0)
 
+# Using nearest neighbor method
 neigh = NearestNeighbors(n_neighbors=3, n_jobs=-1, metric='l2')
 neigh.fit(np.matrix([x_means, y_means]).T.tolist())
 
-
-
 # Making predictions from training data
-'''
-def make_prediction(x_loc, y_loc, x_mean, y_mean):
-	sq_dist = np.add(np.power(np.subtract(np.array([x_loc]*len(x_mean)), np.array(x_mean.tolist())), 2), np.power(np.subtract(np.array([y_loc]*len(y_mean)), np.array(y_mean.tolist())), 2))
-	nearest_indices = three_smallest_inds(sq_dist)
-	nearest_neighbor = []
-	nearest_neighbor.append(places[nearest_indices[0]])
-	nearest_neighbor.append(places[nearest_indices[1]])
-	nearest_neighbor.append(places[nearest_indices[2]])
-	nearest_neighbor = ' '.join(str(e) for e in nearest_neighbor)
-	return(nearest_neighbor)
-
-def compute_sqdist(x_loc, y_loc, df_x, df_y, place):
-	return(math.pow(x_loc - df_x['x_mean'][df_x['place_id']==place], 2) + math.pow(y_loc - df_y['y_mean'][df_y['place_id']==place],2))
-
-
-def make_prediction(x_loc, y_loc, df_x, df_y):
-	x_ind = 0
-	y_ind = 0
-	for x in df_x['x_mean']:
-		if (x_loc < x):
-			x_ind = np.where(np.array(df_x['x_mean']) == x)[0]
-			break
-	for y in df_y['y_mean']:
-		if (y_loc < y):
-			y_ind = np.where(np.array(df_y['y_mean']) == y)[0]
-			break
-	neighbors = []
-	global counter
-	counter = 1
-	while (len(neighbors)<3):
-		x_inds = list(range(max(0,x_ind-counter), min(len(df_x['x_mean']), x_ind+counter)))
-		y_inds = list(range(max(0,y_ind-counter), min(len(df_y['y_mean']), y_ind+counter)))
-		x_neighbors = [places_x['place_id'].iloc(i) for i in x_inds]
-		y_neighbors = [places_y['place_id'].iloc(i) for i in y_inds]
-		neighbors = list(set(x_neighbors).intersection(set(y_neighbors)))
-		counter = counter+1
-	neighbor_distances = [compute_sqdist(x_loc, y_loc, places_x, places_y, p) for p in neighbors]
-	return(np.array(pd.DataFrame(data=[neighbors, neighbor_distances], columns=['place_id', 'dist']).sort_values(by='dist')['place_id'])[:3])
-
-'''
-'''
-nearest_neighbors = np.array([])
-for index, row in test_data.iterrows():
-	np.append(nearest_neighbors, np.array(make_prediction(row['x'], row['y'], places_x, places_y)))
-'''
 nearest_neighbors_arr = []
 for index, row in test_data.iterrows():
-#	np.append(nearest_neighbors_arr, neigh.kneighbors([[row['x'], row['y']]], n_neighbors=3, return_distance=False))
-#	print(neigh.kneighbors([[row['x'], row['y']]], n_neighbors=3, return_distance=False))
 	nearest_neighbors_arr.append(' '.join(str(places[np.array(e)]) for e in neigh.kneighbors([row['x'], row['y']], n_neighbors=3, return_distance=False))[1:-1])
 
+# Formatting and saving predictions
 predictions = pd.DataFrame(data=nearest_neighbors_arr, columns=['place_id'])
 predictions.index.names = ['row_id']
 predictions.to_csv('test_predictions1.csv')
