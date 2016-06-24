@@ -10,12 +10,12 @@ from sklearn.neighbors import NearestNeighbors
 os.chdir('/Users/kevinoconnor/Documents/Kaggle Competitions/FacebookCheckInCompetition/')
 
 # Loading training and test data
-train_data = pd.read_csv('train.csv', header=0, nrows=100000)
-test_data = pd.read_csv('test.csv', header=0, nrows=100)
+train_data = pd.read_csv('train.csv', header=0, nrows=10000)
+test_data = pd.read_csv('test.csv', header=0, nrows=1000)
 
 
 # Computing mean (x,y) coordinates from training data
-places = sorted(set(train_data['place_id']))
+places = np.array(sorted(set(train_data['place_id'])))
 x_places = train_data['x'].groupby(train_data['place_id'])
 y_places = train_data['y'].groupby(train_data['place_id'])
 x_means = x_places.mean()
@@ -89,9 +89,7 @@ nearest_neighbors_arr = []
 for index, row in test_data.iterrows():
 #	np.append(nearest_neighbors_arr, neigh.kneighbors([[row['x'], row['y']]], n_neighbors=3, return_distance=False))
 #	print(neigh.kneighbors([[row['x'], row['y']]], n_neighbors=3, return_distance=False))
-	nearest_neighbors_arr.append(' '.join(str(e) for e in neigh.kneighbors([row['x'], row['y']], n_neighbors=3, return_distance=False))[1:-1])
-
-print(nearest_neighbors_arr)
+	nearest_neighbors_arr.append(' '.join(str(places[np.array(e)]) for e in neigh.kneighbors([row['x'], row['y']], n_neighbors=3, return_distance=False))[1:-1])
 
 predictions = pd.DataFrame(data=nearest_neighbors_arr, columns=['place_id'])
 predictions.index.names = ['row_id']
